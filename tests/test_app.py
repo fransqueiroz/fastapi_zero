@@ -105,6 +105,7 @@ def test_read_user(client):
         'email': 'alice@example.com',
     }
 
+
 def test_read_user_not_found(client):
     response = client.get('/users/100')
 

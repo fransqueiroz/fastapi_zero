@@ -36,7 +36,9 @@ def reat_users():
     return {'users': database}
 
 
-@app.get('/users/{user_id}', status_code=HTTPStatus.OK, response_model=UserPublic)
+@app.get(
+    '/users/{user_id}', status_code=HTTPStatus.OK, response_model=UserPublic
+)
 def read_user(user_id: int):
     if user_id > len(database) or user_id < 1:
         raise HTTPException(
@@ -70,4 +72,5 @@ def delete_user(user_id: int):
 
     return {'message': 'User deleted'}
 
-#Configurando o Banco de Dados e Gerenciando Migrações com Alembic
+
+# Configurando o Banco de Dados e Gerenciando Migrações com Alembic
