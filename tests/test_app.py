@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from fastapi_zero.schemas import UserPublic
+from fastapi_zero.security import create_access_token
 
 
 def test_root_deve_retornar_ok_e_ola_mundo(client):
@@ -8,6 +9,18 @@ def test_root_deve_retornar_ok_e_ola_mundo(client):
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {'message': 'Olá Mundo!'}
+
+
+def test_get_token(client, user):
+    response = client.post(
+        '/token',
+        data={'username': user.email, 'password': user.clean_password},
+    )
+    token = response.json()
+
+    assert response.status_code == HTTPStatus.OK
+    assert 'access_token' in token
+    assert 'token_type' in token
 
 
 def test_create_user(client):
@@ -40,9 +53,10 @@ def test_read_users_with_users(client, user):
     assert response.json() == {'users': [user_schema]}
 
 
-def test_update_user(client, user):
+def test_update_user(client, user, token):
     response = client.put(
-        '/users/1',
+        f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
         json={
             'username': 'bob',
             'email': 'bob@example.com',
@@ -53,11 +67,10 @@ def test_update_user(client, user):
     assert response.json() == {
         'username': 'bob',
         'email': 'bob@example.com',
-        'id': 1,
+        'id': user.id,
     }
 
-def test_update_integrity_error(client, user):
-    # Inserindo fausto
+def test_update_integrity_error(client, user, token):
     client.post(
         '/users',
         json={
@@ -66,10 +79,10 @@ def test_update_integrity_error(client, user):
             'password': 'secret',
         },
     )
-
     # Alterando o user das fixture para fausto
     response_update = client.put(
         f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
         json={
             'username': 'fausto',
             'email': 'bob@example.com',
@@ -82,32 +95,13 @@ def test_update_integrity_error(client, user):
         'detail': 'Username or Email already exists'
     }
 
-
-def test_delete_user(client, user):
-    response = client.delete('/users/1')
+def test_delete_user(client, user, token):
+    response = client.delete(
+        f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
+    )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {'message': 'User deleted'}
-
-
-def _test_update_user_not_found(client, user):
-    response = client.put(
-        '/users/100',
-        json={
-            'username': 'bob',
-            'email': 'bob@example.com',
-            'password': 'mynewpassword',
-        },
-    )
-
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {'detail': 'User not found'}
-
-
-def test_delete_user_not_found(client, user):
-    response = client.delete('/users/100')
-
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {'detail': 'User not found'}
 
 
 def test_read_user(client, user):
@@ -138,11 +132,9 @@ def test_create_user_username_exists(client, user):
         },
     )
 
-
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json() == (
-        {'detail': 'Username already exists'}
-    )
+    assert response.json() == ({'detail': 'Username already exists'})
+
 
 def test_create_user_email_exists(client, user):
     response = client.post(
@@ -156,16 +148,26 @@ def test_create_user_email_exists(client, user):
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json() == {'detail': 'Email already exists'}
 
+def test_get_current_user_not_found__exercicio(client):
+    data = {'no-email': 'test'}
+    token = create_access_token(data)
 
-def test_exception_update_user_not_exists(client, user):
-    response = client.put(
-        '/users/100',
-        json={
-            'username': 'bob',
-            'email': 'bob@example.com',
-            'password': 'mynewpassword',
-        },
+    response = client.delete(
+        '/users/1',
+        headers={'Authorization': f'Bearer {token}'},
     )
 
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {'detail': 'User not found'}
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.json() == {'detail': 'Could not validate credentials'}
+
+def test_get_current_user_does_not_exists__exercicio(client):
+    data = {'sub': 'test@test'}
+    token = create_access_token(data)
+
+    response = client.delete(
+        '/users/1',
+        headers={'Authorization': f'Bearer {token}'},
+    )
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.json() == {'detail': 'Could not validate credentials'}
