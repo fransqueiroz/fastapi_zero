@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from jwt import DecodeError, decode, encode
+from jwt import DecodeError, decode, encode, ExpiredSignatureError
 from fastapi_zero.settings import Settings
 from pwdlib import PasswordHash
 from zoneinfo import ZoneInfo
@@ -54,6 +54,8 @@ def get_current_user(
             raise credentials_exception
         token_data = TokenData(username=username)
     except DecodeError:
+        raise credentials_exception
+    except ExpiredSignatureError:
         raise credentials_exception
 
     user = session.scalar(

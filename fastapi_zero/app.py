@@ -36,3 +36,6 @@ app.include_router(auth.router)
 def read_root():
     logging.error('Teste De Logging')
     return {'message': 'Olá Mundo!'}
+
+
+# Criando Rotas CRUD para Gerenciamento de Tarefas em FastAPI
