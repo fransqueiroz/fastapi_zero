@@ -18,12 +18,9 @@ class UserPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class UserDB(UserSchema):
-    id: int
-
-
 class UserList(BaseModel):
     users: list[UserPublic]
+
 
 class Token(BaseModel):
     access_token: str
@@ -32,3 +29,8 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: str | None = None
+
+
+class FilterPage(BaseModel):
+    offset: int = 0
+    limit: int = 100
