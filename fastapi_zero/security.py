@@ -1,18 +1,18 @@
 from datetime import datetime, timedelta
 from http import HTTPStatus
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from jwt import DecodeError, decode, encode, ExpiredSignatureError
-from fastapi_zero.settings import Settings
+from jwt import DecodeError, ExpiredSignatureError, decode, encode
 from pwdlib import PasswordHash
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from zoneinfo import ZoneInfo
 
 from fastapi_zero.database import get_session
 from fastapi_zero.models import User
 from fastapi_zero.schemas import TokenData
+from fastapi_zero.settings import Settings
 
 settings = Settings()
 
@@ -25,8 +25,11 @@ def create_access_token(data: dict):
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
     to_encode.update({'exp': expire})
-    encoded_jwt = encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    encoded_jwt = encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
     return encoded_jwt
+
 
 def get_password_hash(password: str):
     return pwd_context.hash(password)
@@ -37,6 +40,8 @@ def verify_password(plain_password: str, hashed_password: str):
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth/token')
+
+
 def get_current_user(
     session: Session = Depends(get_session),
     token: str = Depends(oauth2_scheme),
@@ -48,7 +53,9 @@ def get_current_user(
     )
 
     try:
-        payload = decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         username: str = payload.get('sub')
         if not username:
             raise credentials_exception

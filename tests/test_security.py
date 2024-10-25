@@ -1,7 +1,8 @@
-from jwt import decode
 from http import HTTPStatus
 
-from fastapi_zero.security import settings, create_access_token
+from jwt import decode
+
+from fastapi_zero.security import create_access_token, settings
 
 
 def test_jwt():
@@ -10,6 +11,7 @@ def test_jwt():
     decoded = decode(token, settings.SECRET_KEY, algorithms=['HS256'])
     assert decoded['test'] == data['test']
     assert decoded['exp']
+
 
 def test_jwt_invalid_token(client):
     response = client.delete(

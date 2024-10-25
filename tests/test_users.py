@@ -49,6 +49,7 @@ def test_update_user(client, user, token):
         'id': 1,
     }
 
+
 def test_update_integrity_error(client, user, other_user, token):
     response_update = client.put(
         f'/users/{user.id}',
@@ -65,6 +66,7 @@ def test_update_integrity_error(client, user, other_user, token):
         'detail': 'Username or Email already exists'
     }
 
+
 def test_delete_user(client, user, token):
     response = client.delete(
         f'/users/{user.id}',
@@ -74,6 +76,7 @@ def test_delete_user(client, user, token):
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {'message': 'User deleted'}
 
+
 def test_update_user_with_wrong_user(client, other_user, token):
     response = client.put(
         f'/users/{other_user.id}',
@@ -82,11 +85,12 @@ def test_update_user_with_wrong_user(client, other_user, token):
             'username': 'bob',
             'email': 'bob@example.com',
             'password': 'mynewpassword',
-        }
+        },
     )
 
     assert response.status_code == HTTPStatus.FORBIDDEN
     assert response.json() == {'detail': 'Not enough permissions'}
+
 
 def test_delete_user_wrong_user(client, other_user, token):
     response = client.delete(
@@ -95,6 +99,7 @@ def test_delete_user_wrong_user(client, other_user, token):
     )
     assert response.status_code == HTTPStatus.FORBIDDEN
     assert response.json() == {'detail': 'Not enough permissions'}
+
 
 def test_username_exists(client, user):
     response = client.post(
@@ -107,6 +112,7 @@ def test_username_exists(client, user):
     )
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json() == {'detail': 'Username already exists'}
+
 
 def test_email_exists(client, user):
     response = client.post(

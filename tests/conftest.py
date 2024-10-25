@@ -1,11 +1,12 @@
 from contextlib import contextmanager
 from datetime import datetime
 
+import factory  # type: ignore
 import pytest  # type: ignore
-import factory # type: ignore
 from fastapi.testclient import TestClient
-from sqlalchemy import StaticPool, create_engine, event
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session
+from testcontainers.postgres import PostgresContainer
 
 from fastapi_zero.app import app
 from fastapi_zero.database import get_session
@@ -21,6 +22,7 @@ class UserFactory(factory.Factory):
     email = factory.LazyAttribute(lambda obj: f'{obj.username}@test.com')
     password = factory.LazyAttribute(lambda obj: f'{obj.username}@example.com')
 
+
 @pytest.fixture
 def client(session):
     def get_session_override():
@@ -33,17 +35,22 @@ def client(session):
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(scope='session')
+def engine():
+    with PostgresContainer('postgres:16', driver='psycopg') as postgres:
+        _engine = create_engine(postgres.get_connection_url())
+
+        with _engine.begin():
+            yield _engine
+
+
 @pytest.fixture
-def session():
-    engine = create_engine(
-        'sqlite:///:memory:',
-        connect_args={'check_same_thread': False},
-        poolclass=StaticPool,
-    )
+def session(engine):
     table_registry.metadata.create_all(engine)
 
     with Session(engine) as session:
         yield session
+        session.rollback()
 
     table_registry.metadata.drop_all(engine)
 
@@ -94,6 +101,7 @@ def other_user(session):
     user.clean_password = password
 
     return user
+
 
 @pytest.fixture
 def token(client, user):
